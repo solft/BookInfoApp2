@@ -27,7 +27,7 @@ import kotlinx.android.synthetic.main.activity_camera.*
 class SearchActivity : AppCompatActivity() {
 
     companion object {
-        const val YOUR_API_KEY = "AIzaSyA4s-xXSCF0RAN2Io5PQZjLif_dfEZRkug"
+        const val YOUR_API_KEY = "APIKEY"
         const val MAX_DIMENSION = 1200
         const val RE_CAMERA_REQUEST_CODE = 24
     }
