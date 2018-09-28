@@ -21,7 +21,7 @@ class MainActivity : AppCompatActivity() {
 
     ///임시로 지정한 Array<String>//
     var animallist = arrayOf("Lionasdfa\naeasdfse", "Tiger1321324423sfzdfzsdfasefzsdadfaefsfaes", "Leopard", "Cat","cute cat", "ugly cat","and me..","213","423","132","4","5","8","0","9","4","2")
-
+//ㅇ
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
