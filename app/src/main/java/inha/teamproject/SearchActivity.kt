@@ -20,14 +20,16 @@ import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import android.graphics.BitmapFactory
-
+import com.bumptech.glide.Glide
+import kotlinx.android.synthetic.main.activity_camera.*
 
 
 class SearchActivity : AppCompatActivity() {
 
     companion object {
-        const val YOUR_API_KEY = "YOUR_API_KEY"
+        const val YOUR_API_KEY = "AIzaSyA4s-xXSCF0RAN2Io5PQZjLif_dfEZRkug"
         const val MAX_DIMENSION = 1200
+        const val RE_CAMERA_REQUEST_CODE = 24
     }
 
     private val stringBuilder = StringBuilder()
@@ -49,20 +51,26 @@ class SearchActivity : AppCompatActivity() {
         iv_main = findViewById(R.id.photo) as ImageView
         tv_main = findViewById(R.id.tv_main) as TextView
         //카메라에서 바로 넘어온 경우
-        if(intent.getStringExtra("uri") == "camera data" ) {
+        if(intent.getStringExtra("camera") == "camera data" ) {
+            val myUri = Uri.parse(intent.getStringExtra("uri"))
             //bytearray를 다시 bitmap으로
             val imBytes = intent.getByteArrayExtra("im")
             val bmp = BitmapFactory.decodeByteArray(imBytes, 0, imBytes.size)
             Log.d("MainActivity", imBytes.size.toString())
 
+            // 18-09-28 이미지 화질 저하 수정
+            Log.d("MainActivity", "intent.data = ${intent.data}")
+            Glide.with(this).load(myUri).into(iv_main!!)
+
             bitmap = scaleBitmapDown(bmp!!, MAX_DIMENSION)
-            iv_main!!.setImageBitmap(bitmap)
+
         }//갤러리에서 넘어온 경우
         else{
             //앞에서 String으로 변환된 uri를 다시 uri형태로 바꾼다
+            Log.d("SearchActivity", "test")
             val myUri = Uri.parse(intent.getStringExtra("uri"))
+            Glide.with(this).load(myUri).into(iv_main!!)
             bitmap = scaleBitmapDown(MediaStore.Images.Media.getBitmap(contentResolver, myUri), MAX_DIMENSION)
-            iv_main!!.setImageBitmap(bitmap)
         }
         // 검색 시작 버튼
         btn_detect!!.setOnClickListener {
@@ -80,20 +88,27 @@ class SearchActivity : AppCompatActivity() {
 
             tv_main!!.text = result
         }
+
+        again.setOnClickListener {
+            val callCameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            //callCameraIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            if(callCameraIntent.resolveActivity(packageManager)!=null){
+                startActivityForResult(callCameraIntent, RE_CAMERA_REQUEST_CODE)
+            }
+        }
     }
     //아래 함수는 현재 사용하지 않습니다 원래 한솔씨 작업창에서 갤러리 누르면 동작하는 부분인데
     //전에 있던 갤러리 버튼으로 연동하기 때문입니다
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if(requestCode == 0 && resultCode == Activity.RESULT_OK && data != null){
-            Log.d("MainActivity", "Photo was selected")
+        if(requestCode == RE_CAMERA_REQUEST_CODE && data!=null){
+            Log.d("SearchActivity", "done taking a photo")
 
-            selectedUri = data.data
-
-            // 이미지 크기 줄이고 imageView에 표시
-            // bitmap = scaleBitmapDown(MediaStore.Images.Media.getBitmap(contentResolver, selectedUri), MAX_DIMENSION)
-            // iv_main!!.setImageBitmap(bitmap)
+            val myUri = data.data
+            val bmp: Bitmap? = data.extras.get("data") as Bitmap
+            Glide.with(this).load(myUri).into(iv_main!!)
+            bitmap = scaleBitmapDown(bmp!!, MAX_DIMENSION)
         }
     }
 
@@ -128,24 +143,31 @@ class SearchActivity : AppCompatActivity() {
             // 응답 받는거 성공 시
             Log.d("MainActivity", "response = $response")
 
-            // 응답 Json 안에 2중으로 Array 가 있어서 이렇게 속으로 들어갔는데 간단히 할 필요가 있을 것 같음
-            val responseArray = response.getJSONArray("responses")
-            val testAnnotations = responseArray.getJSONObject(0).getJSONArray("textAnnotations")
-            Log.d("MainActivity", "testAnnotations = $testAnnotations")
+            if(response.toString() == """{"responses":[{}]}"""){
+                Log.d("SearchActivity", "responses is null")
+                tv_main!!.text = "No String!!!"
+            }else{
+                // 응답 Json 안에 2중으로 Array 가 있어서 이렇게 속으로 들어갔는데 간단히 할 필요가 있을 것 같음
+                val responseArray = response.getJSONArray("responses")
+                val testAnnotations = responseArray.getJSONObject(0).getJSONArray("textAnnotations")
+                Log.d("MainActivity", "testAnnotations = $testAnnotations")
 
-            // 찾은 text 표시용
-            val message = StringBuilder("사진속에 있는 문자들\n\n")
+                // 찾은 text 표시용
+                val message = StringBuilder("사진속에 있는 문자들\n\n")
 
-            // 들어간 json에서 찾은 text 하나씩 message, findTextList에 추가
-            for(i in 0 until testAnnotations.length()){
-                val responseText = testAnnotations.getJSONObject(i)
-                Log.d("MainActivity", "find Text in $i's ward = ${responseText.getString("description")}")
-                message.append("${responseText.getString("description")}\n")
-                findTextList.add(responseText.getString("description"))
+                // 들어간 json에서 찾은 text 하나씩 message, findTextList에 추가
+                for(i in 0 until testAnnotations.length()){
+                    val responseText = testAnnotations.getJSONObject(i)
+                    Log.d("MainActivity", "find Text in $i's ward = ${responseText.getString("description")}")
+                    message.append("${responseText.getString("description")}\n")
+                    findTextList.add(responseText.getString("description"))
+                }
+
+                // textView에 표시
+                tv_main!!.text = message.toString()
             }
 
-            // textView에 표시
-            tv_main!!.text = message.toString()
+
 
         }, Response.ErrorListener {
             // 응답 받는거 실패 시

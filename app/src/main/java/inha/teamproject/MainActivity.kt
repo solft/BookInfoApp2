@@ -87,7 +87,8 @@ class MainActivity : AppCompatActivity() {
             val imageBytes = byteArrayOutputStream.toByteArray()
             //보내는 작업 여기서 uri는 카메라에서 바로 보내는 걸 알기 위해 아래와 같이 변경
             val intent = Intent(this, SearchActivity::class.java)
-            intent.putExtra("uri", "camera data")
+            intent.putExtra("camera", "camera data")
+            intent.putExtra("uri", uriToString)
             intent.putExtra("im",imageBytes)
 
             startActivity(intent)
